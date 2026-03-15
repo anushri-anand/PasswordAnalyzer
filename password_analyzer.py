@@ -6,35 +6,30 @@ import re
 def check_strength(password):
     score = 0
 
-    # Length
+    # Check Length
     if len(password) >= 8:
-        score += 1
+        score += 2
     if len(password) >= 12:
-        score += 1
+        score += 2
 
-    # Contains numbers
+    # Check Numbers
     if re.search(r"\d", password):
-        score += 1
+        score += 2
 
-    # Contains uppercase
+    # Check uppercase
     if re.search(r"[A-Z]", password):
-        score += 1
+        score += 2
 
-    # Contains symbols
+    # Check symbols
     if re.search(r"[!@#$%^&*(),.?\":{}|<>]", password):
-        score += 1
+        score += 2
 
-    # Determine strength
-    if score <= 2:
-        return "Weak"
-    elif score <= 4:
-        return "Medium"
-    else:
-        return "Strong"
+    # Maximum score
+    return score
 
-# Function to save password to database
+# Save password to database
 
-def save_to_db(password, strength):
+def save_to_db(password, score):
     conn = sqlite3.connect("passwords.db")
     c = conn.cursor()
     # Create table if it doesn't exist
@@ -43,7 +38,7 @@ def save_to_db(password, strength):
                   password TEXT,
                   strength TEXT)''')
     # Insert password
-    c.execute("INSERT INTO passwords (password, strength) VALUES (?, ?)", (password, strength))
+    c.execute("INSERT INTO passwords (password, strength) VALUES (?, ?)", (password, score))
     conn.commit()
     conn.close()
 
@@ -56,7 +51,7 @@ def show_summary():
     results = c.fetchall()
     print("\n--- Password Strength Summary ---")
     for row in results:
-        print(f"{row[0]}: {row[1]}")
+        print(f"Score {row[0]}: {row[1]} passwords")
     conn.close()
 
 # Main program
@@ -67,9 +62,9 @@ def main():
         password = input("\nEnter a password (or type 'quit' to exit): ")
         if password.lower() == "quit":
             break
-        strength = check_strength(password)
-        print(f"Password Strength: {strength}")
-        save_to_db(password, strength)
+        score = check_strength(password)
+        print(f"Password Score: {score}/10")
+        save_to_db(password, score)
 
     show_summary()
     print("\nAll passwords have been saved to passwords.db")
