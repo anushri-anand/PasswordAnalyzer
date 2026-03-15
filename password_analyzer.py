@@ -1,9 +1,12 @@
 import sqlite3
 import re
 
+import tkinter as tk
+from tkinter import messagebox
+
 # Function to check password strength
 
-def check_strength(password):
+def check_score(password):
     score = 0
 
     # Check Length
@@ -36,38 +39,50 @@ def save_to_db(password, score):
     c.execute('''CREATE TABLE IF NOT EXISTS passwords
                  (id INTEGER PRIMARY KEY AUTOINCREMENT,
                   password TEXT,
-                  strength TEXT)''')
+                  score TEXT)''')
     # Insert password
-    c.execute("INSERT INTO passwords (password, strength) VALUES (?, ?)", (password, score))
+    c.execute("INSERT INTO passwords (password, score) VALUES (?, ?)", (password, score))
     conn.commit()
     conn.close()
 
-# Function to show summary
+# Check password button
+
+def check_password():
+    pwd = password_entry.get()
+    if not pwd:
+        messagebox.showwarning("Warning", "Please enter a password!")
+        return
+    
+    score = check_score(pwd)
+    save_to_db(pwd,score)
+    messagebox.showinfo("Password Score", f"Password Score: {score}/10")
+    password_entry.delete(0,tk.END)
+
+# Show summary button 
 
 def show_summary():
     conn = sqlite3.connect("passwords.db")
     c = conn.cursor()
-    c.execute("SELECT strength, COUNT(*) FROM passwords GROUP BY strength")
+    c.execute("SELECT score, COUNT(*) FROM passwords GROUP BY score")
     results = c.fetchall()
-    print("\n--- Password Strength Summary ---")
-    for row in results:
-        print(f"Score {row[0]}: {row[1]} passwords")
     conn.close()
 
-# Main program
+    summary_text = "\n".join([f"Score {row[0]}: {row[1]} passwords" for row in results])
+    if not summary_text:
+        summary_text = "No passwords stored yet."
+    messagebox.showinfo("Password Score Summary", summary_text)
 
-def main():
-    print("=== Password Strength Analyzer ===")
-    while True:
-        password = input("\nEnter a password (or type 'quit' to exit): ")
-        if password.lower() == "quit":
-            break
-        score = check_strength(password)
-        print(f"Password Score: {score}/10")
-        save_to_db(password, score)
+# Tkinter GUI
 
-    show_summary()
-    print("\nAll passwords have been saved to passwords.db")
+root = tk.Tk()
+root.title("Password Strength Analyzer")
 
-if __name__ == "__main__":
-    main()
+tk.Label(root,text="Enter Password: ").pack(pady=5)
+password_entry = tk.Entry(root,show="*",width=30)
+password_entry.pack(pady=5)
+
+tk.Button(root,text = "Check Password", command=check_password).pack(pady=5)
+tk.Button(root,text="Show Summary", command=show_summary).pack(pady=5)
+
+root.geometry("300x180")
+root.mainloop()
